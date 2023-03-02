@@ -79,7 +79,7 @@ def get_spontaneous_environment(cls: t.Type[_env_bound], *args: t.Any) -> _env_b
 
 def create_cache(
     size: int,
-) -> t.Optional[t.MutableMapping[t.Tuple[weakref.ref, str], "Template"]]:
+) -> t.Optional[t.MutableMapping[t.Tuple["weakref.ref[BaseLoader]", str], "Template"]]:
     """Return the cache class for the given size."""
     if size == 0:
         return None
@@ -91,8 +91,10 @@ def create_cache(
 
 
 def copy_cache(
-    cache: t.Optional[t.MutableMapping],
-) -> t.Optional[t.MutableMapping[t.Tuple[weakref.ref, str], "Template"]]:
+    cache: t.Optional[
+        t.MutableMapping[t.Tuple["weakref.ref[BaseLoader]", str], "Template"]
+    ],
+) -> t.Optional[t.MutableMapping[t.Tuple["weakref.ref[BaseLoader]", str], "Template"]]:
     """Create an empty copy of the given cache."""
     if cache is None:
         return None
@@ -814,7 +816,7 @@ class Environment:
 
     def compile_templates(
         self,
-        target: t.Union[str, os.PathLike],
+        target: t.Union[str, "os.PathLike[str]"],
         extensions: t.Optional[t.Collection[str]] = None,
         filter_func: t.Optional[t.Callable[[str], bool]] = None,
         zip: t.Optional[str] = "deflated",
@@ -1253,7 +1255,7 @@ class Template:
         t.blocks = namespace["blocks"]
 
         # render function and module
-        t.root_render_func = namespace["root"]  # type: ignore
+        t.root_render_func = namespace["root"]
         t._module = None
 
         # debug and loader helpers
@@ -1349,7 +1351,7 @@ class Template:
         ctx = self.new_context(dict(*args, **kwargs))
 
         try:
-            yield from self.root_render_func(ctx)  # type: ignore
+            yield from self.root_render_func(ctx)
         except Exception:
             yield self.environment.handle_exception()
 
@@ -1532,7 +1534,7 @@ class TemplateModule:
                     " API you are using."
                 )
 
-            body_stream = list(template.root_render_func(context))  # type: ignore
+            body_stream = list(template.root_render_func(context))
 
         self._body_stream = body_stream
         self.__dict__.update(context.get_exported())
@@ -1564,7 +1566,7 @@ class TemplateExpression:
 
     def __call__(self, *args: t.Any, **kwargs: t.Any) -> t.Optional[t.Any]:
         context = self._template.new_context(dict(*args, **kwargs))
-        consume(self._template.root_render_func(context))  # type: ignore
+        consume(self._template.root_render_func(context))
         rv = context.vars["result"]
         if self._undefined_to_none and isinstance(rv, Undefined):
             rv = None
@@ -1588,7 +1590,7 @@ class TemplateStream:
 
     def dump(
         self,
-        fp: t.Union[str, t.IO],
+        fp: t.Union[str, t.IO[t.Any]],
         encoding: t.Optional[str] = None,
         errors: t.Optional[str] = "strict",
     ) -> None:
